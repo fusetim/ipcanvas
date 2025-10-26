@@ -54,6 +54,6 @@ More details in the subfolder README.
 
 ## Copyright - License
 
-This project is licensed under the AGPL-3.0 License. See the LICENSE file for details.
+This project is licensed under the AGPL-3.0 License. See the [LICENSE file](./LICENSE.md) for details.
 
 Fusetim (2025) - All rights reserved.
