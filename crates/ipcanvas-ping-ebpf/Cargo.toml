@@ -1,0 +1,17 @@
+[package]
+name = "ipcanvas-ping-ebpf"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+ipcanvas-ping-common = { path = "../ipcanvas-ping-common" }
+
+aya-ebpf = { workspace = true }
+aya-log-ebpf = { workspace = true }
+
+[build-dependencies]
+which = { workspace = true }
+
+[[bin]]
+name = "ipcanvas-ping"
+path = "src/main.rs"

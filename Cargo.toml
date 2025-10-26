@@ -1,9 +1,35 @@
 [workspace]
 resolver = "3"
-members = []
+members = [
+    "crates/ipcanvas-ping",
+    "crates/ipcanvas-ping-common",
+    "crates/ipcanvas-ping-ebpf",
+]
+default-members = ["crates/ipcanvas-ping", "crates/ipcanvas-ping-common"]
 
 [workspace.package]
 license = "AGPL-3.0-only"
 edition = "2024"
 repository = "https://github.com/fusetim/ipcanvas"
-authors = [ "FuseTim" ]
+authors = ["FuseTim"]
+
+[workspace.dependencies]
+# Aya dependencies pinned to specific commit to avoid breakages.
+# For some reason, aya releases exists but apparently might be incompatible.
+aya = { git = "https://github.com/aya-rs/aya", rev = "4b4b9f83bd6c1762a5366d2d89353adf4364f76e", default-features = false }
+aya-build = { git = "https://github.com/aya-rs/aya", rev = "4b4b9f83bd6c1762a5366d2d89353adf4364f76e", default-features = false }
+aya-ebpf = { git = "https://github.com/aya-rs/aya", rev = "4b4b9f83bd6c1762a5366d2d89353adf4364f76e", default-features = false }
+aya-log = { git = "https://github.com/aya-rs/aya", rev = "4b4b9f83bd6c1762a5366d2d89353adf4364f76e", default-features = false }
+aya-log-ebpf = { git = "https://github.com/aya-rs/aya", rev = "4b4b9f83bd6c1762a5366d2d89353adf4364f76e", default-features = false }
+
+anyhow = { version = "1", default-features = false }
+clap = { version = "4.5.20", default-features = false, features = ["std"] }
+env_logger = { version = "0.11.5", default-features = false }
+libc = { version = "0.2.159", default-features = false }
+log = { version = "0.4.22", default-features = false }
+tokio = { version = "1.48.0", default-features = false }
+which = { version = "8.0.0", default-features = false, features = ["real-sys"] }
+
+[profile.release.package.ipcanvas-ping-ebpf]
+debug = 2
+codegen-units = 1
