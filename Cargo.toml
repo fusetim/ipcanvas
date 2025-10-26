@@ -1,0 +1,9 @@
+[workspace]
+resolver = "3"
+members = []
+
+[workspace.package]
+license = "AGPL-3.0-only"
+edition = "2024"
+repository = "https://github.com/fusetim/ipcanvas"
+authors = [ "FuseTim" ]
