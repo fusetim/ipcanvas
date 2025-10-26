@@ -1,20 +1,78 @@
 #![no_std]
 #![no_main]
 
+use core::net::Ipv6Addr;
+
 use aya_ebpf::{bindings::xdp_action, macros::xdp, programs::XdpContext};
 use aya_log_ebpf::info;
+use ipcanvas_ping_ebpf::ptr_at;
+use network_types::{
+    eth::{EthHdr, EtherType},
+    icmp::IcmpV6Hdr,
+    ip::{IpProto, Ipv6Hdr},
+};
 
 #[xdp]
 pub fn ipcanvas_ping(ctx: XdpContext) -> u32 {
-    match try_ipcanvas_ping(ctx) {
-        Ok(ret) => ret,
-        Err(_) => xdp_action::XDP_ABORTED,
+    // Check for IPv6
+    match try_ipv6(&ctx) {
+        Ok(_) => {}
+        Err(_) => return xdp_action::XDP_PASS, // Not a packet for us
+    }
+
+    // Check for ICMPv6 Echo Request
+    let ipv6_offset = EthHdr::LEN;
+    match try_icmp_echo_request(&ctx, ipv6_offset) {
+        Ok(_) => {}
+        Err(_) => return xdp_action::XDP_PASS, // Not a packet for us
+    }
+
+    // Extract source and destination addresses
+    let (source_addr, dest_addr) = match extract_ipv6_addresses(&ctx, ipv6_offset) {
+        Ok((src, dst)) => (src, dst),
+        Err(_) => return xdp_action::XDP_PASS, // Unable to extract addresses
+    };
+
+    info!(
+        &ctx,
+        "ICMPv6 Echo Request from {} to {}", source_addr, dest_addr
+    );
+
+    // TODO: Check if the destination address matches our prefix.
+
+    // Send back an ICMPv6 Echo Reply (TODO, need a checksum recalculation here)
+    xdp_action::XDP_PASS
+}
+
+pub fn try_ipv6(ctx: &XdpContext) -> Result<(), ()> {
+    let ethhdr: *const EthHdr = ptr_at(ctx, 0)?;
+    match unsafe { (*ethhdr).ether_type() } {
+        Ok(EtherType::Ipv6) => Ok(()),
+        _ => Err(()),
     }
 }
 
-fn try_ipcanvas_ping(ctx: XdpContext) -> Result<u32, u32> {
-    info!(&ctx, "received a packet");
-    Ok(xdp_action::XDP_PASS)
+pub fn try_icmp_echo_request(ctx: &XdpContext, offset: usize) -> Result<(), ()> {
+    let ipv6hdr: *const Ipv6Hdr = ptr_at(&ctx, offset)?;
+
+    if let IpProto::Ipv6Icmp = unsafe { (*ipv6hdr).next_hdr } {
+        let icmp_hdr: *const IcmpV6Hdr = ptr_at(&ctx, offset + Ipv6Hdr::LEN)?;
+        if unsafe { (*icmp_hdr).type_ } == 128 {
+            // Echo Request
+            return Ok(());
+        }
+    }
+    Err(())
+}
+
+pub fn extract_ipv6_addresses(ctx: &XdpContext, offset: usize) -> Result<(Ipv6Addr, Ipv6Addr), ()> {
+    let ipv6hdr: *const Ipv6Hdr = ptr_at(&ctx, offset)?;
+
+    // Get the IPv6 source and destination addresses (from the Network Byte Order)
+    let src_addr: u128 = u128::from_be_bytes(unsafe { (*ipv6hdr).src_addr });
+    let dst_addr: u128 = u128::from_be_bytes(unsafe { (*ipv6hdr).dst_addr });
+
+    Ok((Ipv6Addr::from(src_addr), Ipv6Addr::from(dst_addr)))
 }
 
 #[cfg(not(test))]
