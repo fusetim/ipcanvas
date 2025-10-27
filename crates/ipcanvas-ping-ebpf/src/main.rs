@@ -3,14 +3,25 @@
 
 use core::net::Ipv6Addr;
 
-use aya_ebpf::{bindings::xdp_action, macros::xdp, programs::XdpContext};
+use aya_ebpf::{
+    bindings::xdp_action,
+    macros::{map, xdp},
+    maps::Array,
+    programs::XdpContext,
+};
 use aya_log_ebpf::info;
+use ipcanvas_ping_common::Ipv6Prefix;
 use ipcanvas_ping_ebpf::ptr_at;
 use network_types::{
     eth::{EthHdr, EtherType},
     icmp::IcmpV6Hdr,
     ip::{IpProto, Ipv6Hdr},
 };
+
+/// eBPF map to hold the IPv6 prefix to match against
+/// (Stored as 16 u8 bytes representing the 128-bit IPv6 address, and a prefix length as a u8)
+#[map]
+static PREFIX: Array<[u8; 17]> = Array::<[u8; 17]>::with_max_entries(1, 0);
 
 #[xdp]
 pub fn ipcanvas_ping(ctx: XdpContext) -> u32 {
@@ -38,7 +49,17 @@ pub fn ipcanvas_ping(ctx: XdpContext) -> u32 {
         "ICMPv6 Echo Request from {} to {}", source_addr, dest_addr
     );
 
-    // TODO: Check if the destination address matches our prefix.
+    // Check if the destination address matches our prefix.
+    let prefix_bytes = match PREFIX.get(0) {
+        Some(bytes) => bytes,
+        None => return xdp_action::XDP_ABORTED, // No prefix configured
+    };
+    let prefix: Ipv6Prefix = (*prefix_bytes).into();
+    if !prefix.matches(&dest_addr) {
+        return xdp_action::XDP_PASS; // Does not match prefix
+    }
+
+    info!(&ctx, "Destination {} matches prefix", dest_addr);
 
     // Send back an ICMPv6 Echo Reply (TODO, need a checksum recalculation here)
     xdp_action::XDP_PASS

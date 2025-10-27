@@ -37,7 +37,7 @@ aya-build = { workspace = true }
 # Finally note that *any* usage of `artifact = ...` in *any* Cargo.toml in the workspace breaks
 # workflows with stable cargo; stable cargo outright refuses to load manifests that use unstable
 # features.
-ipcanvas-ping-ebpf = { path = "../ipcanvas-ping-ebpf" }
+ipcanvas-ping-ebpf = { path = "../ipcanvas-ping-ebpf"}
 
 [[bin]]
 name = "ipcanvas-ping"

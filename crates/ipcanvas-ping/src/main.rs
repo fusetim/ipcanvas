@@ -1,14 +1,23 @@
+use std::str::FromStr;
+
 use anyhow::Context as _;
-use aya::programs::{Xdp, XdpFlags};
+use aya::{
+    maps::Array,
+    programs::{Xdp, XdpFlags},
+};
 use clap::Parser;
+use ipcanvas_ping_common::Ipv6Prefix;
 #[rustfmt::skip]
-use log::{debug, warn};
+use log::{debug, warn, info};
 use tokio::signal;
 
 #[derive(Debug, Parser)]
 struct Opt {
     #[clap(short, long, default_value = "eth0")]
     iface: String,
+
+    #[clap(short, long)]
+    prefix: String,
 }
 
 #[tokio::main]
@@ -53,12 +62,26 @@ async fn main() -> anyhow::Result<()> {
             });
         }
     }
-    let Opt { iface } = opt;
+    let Opt { iface, prefix } = opt;
+
+    // Get the prefix from the command line
+    let ipv6_prefix = Ipv6Prefix::from_str(&prefix).map_err(|_| {
+        anyhow::anyhow!("Invalid IPv6 prefix format, expected format is <address>/<prefix_len>")
+    })?;
+    info!("Using IPv6 prefix: {}", ipv6_prefix);
+
+    // Load and attach the XDP program
     let program: &mut Xdp = ebpf.program_mut("ipcanvas_ping").unwrap().try_into()?;
     program.load()?;
     program.attach(&iface, XdpFlags::default())
         .context("failed to attach the XDP program with default flags - try changing XdpFlags::default() to XdpFlags::SKB_MODE")?;
 
+    // Attach the PREFIX map to some value for testing
+    let mut prefix: Array<_, [u8; 17]> = Array::try_from(ebpf.map_mut("PREFIX").unwrap())?;
+    let ipv6_prefix_bytes: [u8; 17] = ipv6_prefix.into();
+    prefix.set(0, ipv6_prefix_bytes, 0).unwrap();
+
+    // Wait for Ctrl-C
     let ctrl_c = signal::ctrl_c();
     println!("Waiting for Ctrl-C...");
     ctrl_c.await?;
