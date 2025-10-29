@@ -2,14 +2,14 @@ use std::str::FromStr;
 
 use anyhow::Context as _;
 use aya::{
-    maps::Array,
+    maps::{Array, RingBuf},
     programs::{Xdp, XdpFlags},
 };
 use clap::Parser;
 use ipcanvas_ping_common::Ipv6Prefix;
 #[rustfmt::skip]
 use log::{debug, warn, info};
-use tokio::signal;
+use tokio::{io::unix::AsyncFd, signal};
 
 #[derive(Debug, Parser)]
 struct Opt {
@@ -81,11 +81,42 @@ async fn main() -> anyhow::Result<()> {
     let ipv6_prefix_bytes: [u8; 17] = ipv6_prefix.into();
     prefix.set(0, ipv6_prefix_bytes, 0).unwrap();
 
-    // Wait for Ctrl-C
+    // Attach the PING map
+    let ping = RingBuf::try_from(ebpf.map_mut("PING").unwrap())?;
+    let ping_fd = AsyncFd::with_interest(ping, tokio::io::Interest::READABLE)?;
+
+    // Prepare to handle Ctrl-C
     let ctrl_c = signal::ctrl_c();
-    println!("Waiting for Ctrl-C...");
-    ctrl_c.await?;
-    println!("Exiting...");
+
+    info!("Waiting for ping events...");
+    let mut buf = [0u8; 32];
+    tokio::pin!(ctrl_c);
+    tokio::pin!(ping_fd);
+    loop {
+        tokio::select! {
+            _ = &mut ctrl_c => {
+                info!("Ctrl-C received, exiting...");
+                break;
+            }
+            result = ping_fd.readable_mut() => {
+                let mut guard = result?;
+                while let Some(data) = guard.get_inner_mut().next() {
+                    if data.len() != 32 {
+                        warn!("Invalid PingEvent size: {}", data.len());
+                        continue;
+                    }
+                    buf.copy_from_slice(&data);
+                    let event = ipcanvas_ping_common::PingEvent::from_bytes(&buf);
+                    info!(
+                        "PingEvent - Source: {}, Destination: {}",
+                        event.source(),
+                        event.destination()
+                    );
+                }
+                guard.clear_ready();
+            }
+        }
+    }
 
     Ok(())
 }
