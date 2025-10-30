@@ -41,9 +41,9 @@ impl From<(Ipv6Addr, u8)> for Ipv6Prefix {
     }
 }
 
-#[cfg(feature = "user")]
+#[cfg(feature = "std")]
 use core::str::FromStr;
-#[cfg(feature = "user")]
+#[cfg(feature = "std")]
 impl FromStr for Ipv6Prefix {
     type Err = ();
 
