@@ -369,6 +369,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "ipcanvas-service"
+version = "0.1.0"
+
+[[package]]
 name = "itoa"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -4,8 +4,9 @@ members = [
     "crates/ipcanvas-ping",
     "crates/ipcanvas-ping-common",
     "crates/ipcanvas-ping-ebpf",
+    "crates/ipcanvas-service",
 ]
-default-members = ["crates/ipcanvas-ping", "crates/ipcanvas-ping-common"]
+default-members = ["crates/ipcanvas-ping", "crates/ipcanvas-ping-common", "crates/ipcanvas-service"]
 
 [workspace.package]
 license = "AGPL-3.0-only"
