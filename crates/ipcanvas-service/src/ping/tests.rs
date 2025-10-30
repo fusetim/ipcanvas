@@ -216,3 +216,101 @@ fn ping_server_egress_all() {
     assert_eq!(events.len(), 4, "Expected 4 events egressed");
     assert_eq!(server.egress.len(), 0, "Egress buffer should be empty");
 }
+
+#[test]
+fn ping_server_handle_ping_event() {
+    // Currently only one event type is supported, so this test is simple
+    let redx10y0 = PingEvent {
+        destination_address: [0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 255, 0, 0, 0, 0],
+        source_address: [0; 16],
+    };
+    let bluex20y30 = PingEvent {
+        destination_address: [0, 0, 0, 0, 0, 0, 0, 20, 0, 10, 0, 0, 0, 0, 0, 255],
+        source_address: [0; 16],
+    };
+    let whitex256y256 = PingEvent {
+        destination_address: [0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 255, 0, 255, 0, 255],
+        source_address: [0; 16],
+    };
+
+    let red_event = PingServer::handle_ping_event(&redx10y0);
+    assert_eq!(
+        red_event,
+        vec![Event::PlacePixel { x: 10, y: 0, color: crate::events::PixelColor { r: 255, g: 0, b: 0 } }],
+        "Red pixel event mismatch"
+    );
+
+    let blue_event = PingServer::handle_ping_event(&bluex20y30);
+    assert_eq!(
+        blue_event,
+        vec![Event::PlacePixel { x: 20, y: 10, color: crate::events::PixelColor { r: 0, g: 0, b: 255 } }],
+        "Blue pixel event mismatch"
+    );
+
+    let white_event = PingServer::handle_ping_event(&whitex256y256);
+    assert_eq!(
+        white_event,
+        vec![Event::PlacePixel { x: 256, y: 256, color: crate::events::PixelColor { r: 255, g: 255, b: 255 } }],
+        "White pixel event mismatch"
+    );
+}
+
+#[test]
+fn ping_server_handle_incoming_ping_event() {
+    // Currently only one event type is supported, so this test is simple
+    let redx10y0 = PingEvent {
+        destination_address: [0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 255, 0, 0, 0, 0],
+        source_address: [0; 16],
+    };
+    let bluex20y30 = PingEvent {
+        destination_address: [0, 0, 0, 0, 0, 0, 0, 20, 0, 10, 0, 0, 0, 0, 0, 255],
+        source_address: [0; 16],
+    };
+    let whitex256y256 = PingEvent {
+        destination_address: [0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 255, 0, 255, 0, 255],
+        source_address: [0; 16],
+    };
+
+    let mut server = PingServer::new(96, 4); // Enough for 3 PingEvents
+    let mut buf = [0u8; 96];
+    buf[0..32].copy_from_slice(redx10y0.as_bytes());
+    buf[32..64].copy_from_slice(bluex20y30.as_bytes());
+    buf[64..96].copy_from_slice(whitex256y256.as_bytes());
+
+    let result = server.ingest(&buf);
+    assert!(result.is_ok(), "Expected successful ingest");
+
+    let result = server.progress();
+    assert!(result.is_ok(), "Expected successful progress");
+    assert_eq!(server.egress.len(), 3, "Egress buffer should have 3 events");
+
+    let events = server.egress(3);
+    assert_eq!(events.len(), 3, "Expected 3 events egressed");
+    assert_eq!(
+        events[0],
+        Event::PlacePixel {
+            x: 10,
+            y: 0,
+            color: crate::events::PixelColor { r: 255, g: 0, b: 0 }
+        },
+        "Red pixel event mismatch"
+    );
+    assert_eq!(
+        events[1],
+        Event::PlacePixel {
+            x: 20,
+            y: 10,
+            color: crate::events::PixelColor { r: 0, g: 0, b: 255 }
+        },
+        "Blue pixel event mismatch"
+    );
+    assert_eq!(
+        events[2],
+        Event::PlacePixel {
+            x: 256,
+            y: 256,
+            color: crate::events::PixelColor { r: 255, g: 255, b: 255 }
+        },
+        "White pixel event mismatch"
+    );
+}

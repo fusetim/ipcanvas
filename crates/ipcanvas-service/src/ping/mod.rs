@@ -1,8 +1,8 @@
 //! PingServer: sans-io server that ingests raw data from the Ping listener and produces Canvas Events.
 
-use std::mem;
-use ipcanvas_ping_common::PingEvent;
 use crate::events::Event;
+use ipcanvas_ping_common::PingEvent;
+use std::mem;
 
 #[cfg(test)]
 mod tests;
@@ -12,7 +12,7 @@ mod tests;
 /// The PingServer maintains two internal buffers:
 /// - Ingest buffer: holds raw data ingested from the Ping listener
 /// - Egress buffer: holds processed Canvas [Event] ready to be consumed by the application
-/// 
+///
 /// The server comes with internal buffers of configurable sizes for both ingest and egress.
 /// The user is responsible for ensuring that the buffers are sized appropriately for their use case.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -24,9 +24,9 @@ pub struct PingServer {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PingServerError {
     /// Ingest blocks, as the buffer is full
-    /// 
+    ///
     /// The `read` field indicates how many bytes were read before the buffer became full.
-    IngestFull{ read: usize },
+    IngestFull { read: usize },
     /// Ingest is empty, no data to process
     IngestEmpty,
     /// Egress blocks, as the buffer is full
@@ -38,8 +38,14 @@ pub enum PingServerError {
 impl PingServer {
     /// Create a new PingServer with specified capacities for ingest and egress buffers
     pub fn new(ingest_capacity: usize, egress_capacity: usize) -> Self {
-        debug_assert!(ingest_capacity > 32, "Ingest capacity must be greater than 32 bytes");
-        debug_assert!(egress_capacity > 0, "Egress capacity must be greater than 0 events");
+        debug_assert!(
+            ingest_capacity > 32,
+            "Ingest capacity must be greater than 32 bytes"
+        );
+        debug_assert!(
+            egress_capacity > 0,
+            "Egress capacity must be greater than 0 events"
+        );
         PingServer {
             ingest: Vec::with_capacity(ingest_capacity),
             egress: Vec::with_capacity(egress_capacity),
@@ -60,6 +66,36 @@ impl PingServer {
         }
     }
 
+    /// Handle a single PingEvent and produce events from it
+    ///
+    /// NOTE: Currently only one event is produced per PingEvent.
+    /// But this is expected to change in the future as more event types are supported.
+    fn handle_ping_event(ping_event: &PingEvent) -> Vec<Event> {
+        let mut events = Vec::new();
+
+        // TODO: For now, we will focus only on PlacePixel events.
+        // TODO: We will want to allow decimal x,y coordinates in the future.
+        let event = Event::PlacePixel {
+            x: u16::from_be_bytes(
+                ping_event.destination_address[6..8]
+                    .try_into()
+                    .expect("2-byte slice = u16"),
+            ),
+            y: u16::from_be_bytes(
+                ping_event.destination_address[8..10]
+                    .try_into()
+                    .expect("2-byte slice = u16"),
+            ),
+            color: crate::events::PixelColor {
+                r: ping_event.destination_address[11],
+                g: ping_event.destination_address[13],
+                b: ping_event.destination_address[15],
+            },
+        };
+        events.push(event);
+        events
+    }
+
     /// Make progress, try to process ingested data into events
     pub fn progress(&mut self) -> Result<(), PingServerError> {
         // Ingress data are expected to be in multiples of 32 bytes (size of PingEvent)
@@ -74,29 +110,22 @@ impl PingServer {
         let mut buf = [0u8; 32];
         let mut flag_egress_full = false;
         while offset + 32 <= self.ingest.len() {
-            // Check if egress buffer has space,
-            // otherwise, we won't be able to make more progress
-            if self.egress.len() >= self.egress.capacity() {
-                flag_egress_full = true;
-                break;
-            }
-
             // Parse PingEvent
             buf.copy_from_slice(&self.ingest[offset..offset + 32]);
             let ping_event = PingEvent::from_bytes(&buf);
 
-            // TODO: For now, we will focus only on PlacePixel events.
-            // TODO: We will want to allow decimal x,y coordinates in the future.
-            let event = Event::PlacePixel {
-                x: u16::from_be_bytes(ping_event.destination_address[6..8].try_into().expect("2-byte slice = u16")),
-                y: u16::from_be_bytes(ping_event.destination_address[8..10].try_into().expect("2-byte slice = u16")),
-                color: crate::events::PixelColor {
-                    r: ping_event.source_address[15],
-                    g: ping_event.source_address[13],
-                    b: ping_event.source_address[11],
-                },
-            };
-            self.egress.push(event);
+            // Handle PingEvent and produce Events
+            let events = PingServer::handle_ping_event(&ping_event);
+        
+            // Check if egress buffer has enough space
+            if self.egress.len() + events.len() > self.egress.capacity() {
+                // Egress buffer full, cannot process more events
+                flag_egress_full = true;
+                break;
+            }
+
+            // Otherwise, push events to egress buffer
+            self.egress.extend(events);
             offset += 32;
         }
 
