@@ -6,4 +6,19 @@ edition.workspace = true
 repository.workspace = true
 authors.workspace = true
 
+[lib]
+
 [dependencies]
+ipcanvas-ping-common = { path = "../ipcanvas-ping-common", features = ["std"] }
+
+anyhow = { workspace = true, default-features = true }
+env_logger = { workspace = true }
+log = { workspace = true }
+tokio = { workspace = true, features = [
+    "macros",
+    "rt",
+    "rt-multi-thread",
+    "net",
+    "signal",
+] }
+clap = { workspace = true, features = ["derive"]}
