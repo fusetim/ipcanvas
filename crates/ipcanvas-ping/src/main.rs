@@ -13,9 +13,13 @@ use tokio::{io::unix::AsyncFd, signal};
 
 #[derive(Debug, Parser)]
 struct Opt {
+    /// Network interface to attach the XDP program to, default is "eth0"
     #[clap(short, long, default_value = "eth0")]
     iface: String,
 
+    /// IPv6 prefix to match against, in the format <address>/<prefix_len>
+    /// 
+    /// Example: "2001:db8::/64"
     #[clap(short, long)]
     prefix: String,
 }

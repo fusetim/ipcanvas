@@ -21,5 +21,7 @@ destination IPv6 address to a BPF map, which can then be read by a user-space ap
 This allows the user-space application to decode the pixel information from the destination
 address and update the canvas accordingly.
 
-It also swaps the source and destination addresses and sends back an ICMPv6 Echo Reply (pong)
-to the original sender, acknowledging the pixel placement. (And doing so, the packet never reaches user space.)
+## Building and Running
+
+You are not really supposed to build or run this crate directly. Instead, it is built and loaded by the
+`ipcanvas-ping` crate, which contains the user-space component of the Ping listener.

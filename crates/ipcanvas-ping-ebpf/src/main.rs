@@ -32,6 +32,10 @@ static PREFIX: Array<[u8; 17]> = Array::<[u8; 17]>::with_max_entries(1, 0);
 #[map]
 static PING: RingBuf = RingBuf::with_byte_size(32768, 0);
 
+/// XDP program to process incoming packets and detect ICMPv6 Echo Requests
+/// destined to the configured IPv6 prefix.
+/// 
+/// This is basically the entry point for the eBPF program.
 #[xdp]
 pub fn ipcanvas_ping(ctx: XdpContext) -> u32 {
     // Check for IPv6
@@ -87,10 +91,18 @@ pub fn ipcanvas_ping(ctx: XdpContext) -> u32 {
         }
     }
 
-    // Send back an ICMPv6 Echo Reply (TODO, need a checksum recalculation here)
     xdp_action::XDP_PASS
 }
 
+/// Check if the packet is an IPv6 packet.
+/// 
+/// # Arguments
+/// * `ctx` - The XdpContext containing packet data pointers.
+/// 
+/// # Returns
+/// * `Ok(())` - If the packet is IPv6.
+/// * `Err(())` - If not.
+#[inline(always)]
 pub fn try_ipv6(ctx: &XdpContext) -> Result<(), ()> {
     let ethhdr: *const EthHdr = ptr_at(ctx, 0)?;
     match unsafe { (*ethhdr).ether_type() } {
@@ -99,6 +111,16 @@ pub fn try_ipv6(ctx: &XdpContext) -> Result<(), ()> {
     }
 }
 
+/// Check if the packet at the given offset is an ICMPv6 Echo Request.
+///
+/// # Arguments
+/// * `ctx` - The XdpContext containing packet data pointers.
+/// * `offset` - The offset within the packet data where the IPv6 header starts.
+/// 
+/// # Returns
+/// * `Ok(())` - If the packet is an ICMPv6 Echo Request.
+/// * `Err(())` - If not.
+#[inline(always)]
 pub fn try_icmp_echo_request(ctx: &XdpContext, offset: usize) -> Result<(), ()> {
     let ipv6hdr: *const Ipv6Hdr = ptr_at(&ctx, offset)?;
 
@@ -112,6 +134,16 @@ pub fn try_icmp_echo_request(ctx: &XdpContext, offset: usize) -> Result<(), ()> 
     Err(())
 }
 
+/// Extract the source and destination IPv6 addresses from the IPv6 header at the given offset.
+/// 
+/// # Arguments
+/// * `ctx` - The XdpContext containing packet data pointers.
+/// * `offset` - The offset within the packet data where the IPv6 header starts.
+/// 
+/// # Returns
+/// * `Ok((Ipv6Addr, Ipv6Addr))` - A tuple of source and destination IPv6 addresses if successful.
+/// * `Err(())` - An error if unable to extract the addresses.
+#[inline(always)]
 pub fn extract_ipv6_addresses(ctx: &XdpContext, offset: usize) -> Result<(Ipv6Addr, Ipv6Addr), ()> {
     let ipv6hdr: *const Ipv6Hdr = ptr_at(&ctx, offset)?;
 
