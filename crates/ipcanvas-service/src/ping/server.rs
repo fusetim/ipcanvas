@@ -2,7 +2,7 @@ use std::{fmt::Display, mem};
 
 use ipcanvas_ping_common::PingEvent;
 
-use crate::events::Event;
+use crate::{canvas::PixelColor, events::Event};
 
 /// PingServer: sans-io server that ingests raw data from the Ping listener and produces Canvas Events.
 ///
@@ -96,7 +96,7 @@ impl PingServer {
                     .try_into()
                     .expect("2-byte slice = u16"),
             ),
-            color: crate::events::PixelColor {
+            color: PixelColor {
                 r: ping_event.destination_address[11],
                 g: ping_event.destination_address[13],
                 b: ping_event.destination_address[15],
@@ -155,6 +155,11 @@ impl PingServer {
         let to_egress = self.egress.len().min(max_events);
         let events: Vec<Event> = self.egress.drain(..to_egress).collect();
         events
+    }
+
+    /// Get the current number of ready events
+    pub fn ready_events(&self) -> usize {
+        self.egress.len()
     }
 }
 
@@ -407,7 +412,7 @@ mod tests {
             vec![Event::PlacePixel {
                 x: 10,
                 y: 0,
-                color: crate::events::PixelColor { r: 255, g: 0, b: 0 }
+                color: PixelColor { r: 255, g: 0, b: 0 }
             }],
             "Red pixel event mismatch"
         );
@@ -418,7 +423,7 @@ mod tests {
             vec![Event::PlacePixel {
                 x: 20,
                 y: 10,
-                color: crate::events::PixelColor { r: 0, g: 0, b: 255 }
+                color: PixelColor { r: 0, g: 0, b: 255 }
             }],
             "Blue pixel event mismatch"
         );
@@ -429,7 +434,7 @@ mod tests {
             vec![Event::PlacePixel {
                 x: 256,
                 y: 256,
-                color: crate::events::PixelColor {
+                color: PixelColor {
                     r: 255,
                     g: 255,
                     b: 255
@@ -475,7 +480,7 @@ mod tests {
             Event::PlacePixel {
                 x: 10,
                 y: 0,
-                color: crate::events::PixelColor { r: 255, g: 0, b: 0 }
+                color: PixelColor { r: 255, g: 0, b: 0 }
             },
             "Red pixel event mismatch"
         );
@@ -484,7 +489,7 @@ mod tests {
             Event::PlacePixel {
                 x: 20,
                 y: 10,
-                color: crate::events::PixelColor { r: 0, g: 0, b: 255 }
+                color: PixelColor { r: 0, g: 0, b: 255 }
             },
             "Blue pixel event mismatch"
         );
@@ -493,7 +498,7 @@ mod tests {
             Event::PlacePixel {
                 x: 256,
                 y: 256,
-                color: crate::events::PixelColor {
+                color: PixelColor {
                     r: 255,
                     g: 255,
                     b: 255

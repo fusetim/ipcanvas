@@ -20,6 +20,10 @@ tokio = { workspace = true, features = [
     "rt-multi-thread",
     "net",
     "signal",
-    "io-util"
+    "io-util",
+    "tracing"
 ] }
-clap = { workspace = true, features = ["derive"]}
+clap = { workspace = true, features = ["derive"] }
+fastwebsockets = { workspace = true, features = ["upgrade"] }
+tracing = "0.1"
+console-subscriber = "0.5.0"
