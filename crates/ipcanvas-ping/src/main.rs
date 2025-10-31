@@ -18,7 +18,7 @@ struct Opt {
     iface: String,
 
     /// IPv6 prefix to match against, in the format <address>/<prefix_len>
-    /// 
+    ///
     /// Example: "2001:db8::/64"
     #[clap(short, long)]
     prefix: String,
