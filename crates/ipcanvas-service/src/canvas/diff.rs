@@ -14,7 +14,7 @@ impl CanvasDiff {
     }
 
     /// Get an iterator over the changed pixels.
-    pub fn changed_pixels(&self) -> impl Iterator<Item = &Pixel> + ExactSizeIterator{
+    pub fn changed_pixels(&self) -> impl Iterator<Item = &Pixel> + ExactSizeIterator {
         self.changed_pixels.iter()
     }
 

@@ -7,13 +7,12 @@ use ipcanvas_service::{
     events::Event,
     ping::{PingServer, PingServerError},
 };
-use tracing::{debug, info, trace, warn};
 use tokio::{
     io::AsyncReadExt,
     net::{TcpListener, TcpStream},
     sync::mpsc,
 };
-use tracing::{span, event};
+use tracing::{debug, event, info, span, trace, warn};
 
 const EVENT_BUFFER_SIZE: usize = 128;
 const DIFF_BUFFER_SIZE: usize = 10;
@@ -122,7 +121,10 @@ async fn main() -> Result<()> {
 }
 
 /// Handle an individual ping connection
-async fn handle_ping_connection(mut socket: TcpStream, events_sender: mpsc::Sender<Event>) -> Result<()> {
+async fn handle_ping_connection(
+    mut socket: TcpStream,
+    events_sender: mpsc::Sender<Event>,
+) -> Result<()> {
     let span = span!(tracing::Level::TRACE, "handle_ping_connection");
     let _enter = span.enter();
 
@@ -137,7 +139,10 @@ async fn handle_ping_connection(mut socket: TcpStream, events_sender: mpsc::Send
         // Read the outputs from the server
         let to_egress = ping_server.ready_events();
         if to_egress > 0 {
-            match events_sender.reserve_many(to_egress.min(EVENT_BUFFER_SIZE)).await {
+            match events_sender
+                .reserve_many(to_egress.min(EVENT_BUFFER_SIZE))
+                .await
+            {
                 Ok(mut permit) => {
                     let n = permit.len();
                     let events = ping_server.egress(n);
@@ -147,7 +152,10 @@ async fn handle_ping_connection(mut socket: TcpStream, events_sender: mpsc::Send
                     trace!("Sent {} events to event channel", n);
                 }
                 Err(e) => {
-                    warn!("Failed to send events to event channel - channel closed: {}", e);
+                    warn!(
+                        "Failed to send events to event channel - channel closed: {}",
+                        e
+                    );
                     break;
                 }
             }
