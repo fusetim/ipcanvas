@@ -34,7 +34,7 @@ static PING: RingBuf = RingBuf::with_byte_size(32768, 0);
 
 /// XDP program to process incoming packets and detect ICMPv6 Echo Requests
 /// destined to the configured IPv6 prefix.
-/// 
+///
 /// This is basically the entry point for the eBPF program.
 #[xdp]
 pub fn ipcanvas_ping(ctx: XdpContext) -> u32 {
@@ -95,10 +95,10 @@ pub fn ipcanvas_ping(ctx: XdpContext) -> u32 {
 }
 
 /// Check if the packet is an IPv6 packet.
-/// 
+///
 /// # Arguments
 /// * `ctx` - The XdpContext containing packet data pointers.
-/// 
+///
 /// # Returns
 /// * `Ok(())` - If the packet is IPv6.
 /// * `Err(())` - If not.
@@ -116,7 +116,7 @@ pub fn try_ipv6(ctx: &XdpContext) -> Result<(), ()> {
 /// # Arguments
 /// * `ctx` - The XdpContext containing packet data pointers.
 /// * `offset` - The offset within the packet data where the IPv6 header starts.
-/// 
+///
 /// # Returns
 /// * `Ok(())` - If the packet is an ICMPv6 Echo Request.
 /// * `Err(())` - If not.
@@ -135,11 +135,11 @@ pub fn try_icmp_echo_request(ctx: &XdpContext, offset: usize) -> Result<(), ()> 
 }
 
 /// Extract the source and destination IPv6 addresses from the IPv6 header at the given offset.
-/// 
+///
 /// # Arguments
 /// * `ctx` - The XdpContext containing packet data pointers.
 /// * `offset` - The offset within the packet data where the IPv6 header starts.
-/// 
+///
 /// # Returns
 /// * `Ok((Ipv6Addr, Ipv6Addr))` - A tuple of source and destination IPv6 addresses if successful.
 /// * `Err(())` - An error if unable to extract the addresses.

@@ -1,2 +1,5 @@
 [target."cfg(all())"]
-runner = "sudo -E"
+#runner = "sudo -E"
+
+[build]
+rustflags = ["--cfg", "tokio_unstable"]

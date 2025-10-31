@@ -2,12 +2,14 @@
 name = "ipcanvas-ping-common"
 version = "0.1.0"
 edition.workspace = true
-
+authors.workspace = true
 license.workspace = true
+repository.workspace = true
 
 [features]
 default = []
-user = ["aya"]
+std = []
+user = ["aya", "std"]
 
 [dependencies]
 aya = { workspace = true, optional = true }

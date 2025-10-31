@@ -31,11 +31,11 @@ the destination address, and update the canvas accordingly.
 
 ipcanvas is split into three main components:
 
-1. **Ping Listener**: A service that listens for incoming ICMPv6 Echo Requests (pings) on the delegated IPv6 subnet.   
+1. [**Ping Listener**](./crates/ipcanvas-ping/): A service that listens for incoming ICMPv6 Echo Requests (pings) on the delegated IPv6 subnet.   
   Under the hood, it uses XDP and eBPF to efficiently capture and process the incoming packets at a low level.  
   *Probably overkilled but it is also a nice learning experience!*
 
-2. **Pixel Service**: A very lightweight web services that published the current state of the canvas via WebSocket.
+2. [**Canvas Service**](./crates/ipcanvas-service/): A very lightweight web services that published the current state of the canvas via WebRTC.
 
 3. **Web Frontend**: A (static?) web application that displays the canvas to users and allows them to see the real-time updates as pixels are placed.
 

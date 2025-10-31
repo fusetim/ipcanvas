@@ -4,8 +4,9 @@ members = [
     "crates/ipcanvas-ping",
     "crates/ipcanvas-ping-common",
     "crates/ipcanvas-ping-ebpf",
+    "crates/ipcanvas-service",
 ]
-default-members = ["crates/ipcanvas-ping", "crates/ipcanvas-ping-common"]
+default-members = ["crates/ipcanvas-ping", "crates/ipcanvas-ping-common", "crates/ipcanvas-service"]
 
 [workspace.package]
 license = "AGPL-3.0-only"
@@ -23,12 +24,14 @@ aya-log = { git = "https://github.com/aya-rs/aya", rev = "4b4b9f83bd6c1762a5366d
 aya-log-ebpf = { git = "https://github.com/aya-rs/aya", rev = "4b4b9f83bd6c1762a5366d2d89353adf4364f76e", default-features = false }
 
 anyhow = { version = "1", default-features = false }
-clap = { version = "4.5.20", default-features = false, features = ["std"] }
+clap = { version = "4.5.51", features = ["derive"] }
 env_logger = { version = "0.11.5", default-features = false }
 libc = { version = "0.2.159", default-features = false }
 log = { version = "0.4.22", default-features = false }
 tokio = { version = "1.48.0", default-features = false }
 which = { version = "8.0.0", default-features = false, features = ["real-sys"] }
+str0m = { version = "0.11.1" }
+fastwebsockets = { version = "0.10.0", default-features = false }
 
 [profile.release.package.ipcanvas-ping-ebpf]
 debug = 2

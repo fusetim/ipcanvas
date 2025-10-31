@@ -1,0 +1,29 @@
+[package]
+name = "ipcanvas-service"
+version = "0.1.0"
+license.workspace = true
+edition.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lib]
+
+[dependencies]
+ipcanvas-ping-common = { path = "../ipcanvas-ping-common", features = ["std"] }
+
+anyhow = { workspace = true, default-features = true }
+env_logger = { workspace = true }
+log = { workspace = true }
+tokio = { workspace = true, features = [
+    "macros",
+    "rt",
+    "rt-multi-thread",
+    "net",
+    "signal",
+    "io-util",
+    "tracing"
+] }
+clap = { workspace = true, features = ["derive"] }
+fastwebsockets = { workspace = true, features = ["upgrade"] }
+tracing = "0.1"
+console-subscriber = "0.5.0"
