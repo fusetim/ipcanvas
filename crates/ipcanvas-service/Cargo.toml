@@ -27,3 +27,7 @@ clap = { workspace = true, features = ["derive"] }
 fastwebsockets = { workspace = true, features = ["upgrade"] }
 tracing = "0.1"
 console-subscriber = "0.5.0"
+hyper = { version = "1", features = ["http1", "server"] }
+hyper-util = { version = "0.1", features = ["server"] }
+http-body-util = { version = "0.1.0" }
+futures = { version = "0.3"}
